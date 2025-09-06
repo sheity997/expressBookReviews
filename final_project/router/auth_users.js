@@ -58,30 +58,48 @@ regd_users.post("/login", (req,res) => {
     }
 });
 
-// Register a new user
-regd_users.post("/register", (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
-
-    // Check if both username and password are provided
-    if (username && password) {
-        // Check if the user does not already exist
-        if (!isValid(username)) {
-            // Add the new user to the users array
-            users.push({"username": username, "password": password});
-            return res.status(200).json({message: "User successfully registered. Now you can login"});
-        } else {
-            return res.status(404).json({message: "User already exists!"});
-        }
-    }
-    // Return error if username or password is missing
-    return res.status(404).json({message: "Unable to register user."});
-});
-
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+    let isbn = req.params.isbn;
+    let review = req.body.review; // BODY, nu params
+    let userrev = req.session.authorization.username;
+
+    if (!books[isbn]) {
+        return res.status(404).json({message: "ISBN was not found"});
+    }
+
+    if (!review || review.trim() === "") {
+        return res.status(400).json({message: "Review cannot be empty"});
+    }
+
+    // Adăugăm sau modificăm review-ul
+    books[isbn].reviews[userrev] = review;
+    return res.status(200).json({
+        message: `The review '${review}' was added successfully to the book with isbn = ${isbn}`
+    });
+});
+
+// Delete a book review
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    let isbn = req.params.isbn;
+    let userrev = req.session.authorization.username;
+
+    // Verificăm dacă ISBN-ul există
+    if (!books[isbn]) {
+        return res.status(404).json({ message: "ISBN was not found" });
+    }
+
+    // Verificăm dacă userul are review pentru această carte
+    if (!books[isbn].reviews[userrev]) {
+        return res.status(404).json({ message: "You have not added a review for this book" });
+    }
+
+    // Ștergem review-ul
+    delete books[isbn].reviews[userrev];
+
+    return res.status(200).json({
+        message: `Your review was deleted successfully from the book with ISBN ${isbn}`
+    });
 });
 
 module.exports.authenticated = regd_users;
